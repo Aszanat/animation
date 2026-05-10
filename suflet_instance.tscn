@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://djf0bykhf1g83"]
+
+[ext_resource type="PackedScene" uid="uid://d26mx6wjx2cl6" path="res://Suflet.glb" id="1_1lex3"]
+
+[node name="Suflet" unique_id=722566062 instance=ExtResource("1_1lex3")]
+
+[node name="PhysicalBoneSimulator3D" type="PhysicalBoneSimulator3D" parent="Armature/Skeleton3D" parent_id_path=PackedInt32Array(1323406045) index="1" unique_id=73026813]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="Armature" parent_id_path=PackedInt32Array(2027897818) index="1" unique_id=1575923496]
+root_node = NodePath("../Skeleton3D")
