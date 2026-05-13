@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://c64wiyg3wlbb1"]
+
+[node name="SliderInterface" type="Node2D" unique_id=1282944934]
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1014218241]
+position = Vector2(576, 324)
+
+[node name="HSlider" type="HSlider" parent="." unique_id=1591768945]
+offset_right = 178.0
+offset_bottom = 16.0
