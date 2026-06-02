@@ -1,7 +1,11 @@
 [gd_scene format=3 uid="uid://djf0bykhf1g83"]
 
 [ext_resource type="PackedScene" uid="uid://d26mx6wjx2cl6" path="res://Suflet.glb" id="1_1lex3"]
+[ext_resource type="Script" uid="uid://j65in6piwbcq" path="res://skeleton_3d.gd" id="2_25iio"]
 
 [node name="Suflet" unique_id=722566062 instance=ExtResource("1_1lex3")]
 
-[node name="PhysicalBoneSimulator3D" type="PhysicalBoneSimulator3D" parent="Armature/Skeleton3D" parent_id_path=PackedInt32Array(1080756599) index="1" unique_id=73026813]
+[node name="Skeleton3D" parent="Armature" parent_id_path=PackedInt32Array(1261272819) index="0" unique_id=1697148254]
+script = ExtResource("2_25iio")
+
+[node name="PhysicalBoneSimulator3D" type="PhysicalBoneSimulator3D" parent="Armature/Skeleton3D" index="1" unique_id=73026813]
