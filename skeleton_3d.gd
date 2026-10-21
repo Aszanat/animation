@@ -1,69 +1,69 @@
 extends Skeleton3D
 
+class AxisRotation:
+	var cycle_start_phase: float # [0, 1)
+	var rotation_zero_angle_offset: float # [0, 1) where 1 would be full circle around
+	var angle_range: float # [0, 1) technically could be more if the joint is like, SUPER flexible...
+	var axis: Vector3
+	var angle_calculator: Callable
+
+	func _init(csp: float, rzao: float, ar: float, a: Vector3, ac: Callable) -> void:
+		self.cycle_start_phase = csp
+		self.rotation_zero_angle_offset = rzao
+		self.angle_range = ar
+		self.axis = a.normalized()
+		self.angle_calculator = ac
 
 class AnimJoint:
 	# set automatically
-	var cycle_moment: float
-	var index: int
-	
-	# initiators
-	var cycle_start_moment: float
-	var rotation_zero_angle_offset: float # in radians. Horrible.
-	var cycle_angle_range_multiplier: float
-	var axis: Vector3
-	
-	func init(
-		cycle_start_moment: float, 
-		rotation_zero_angle_offset: float, 
-		cycle_angle_range_multiplier: float,
-		axis: Vector3):
-			self.cycle_start_moment = cycle_start_moment
-			self.rotation_zero_angle_offset = rotation_zero_angle_offset
-			self.cycle_angle_range_multiplier = cycle_angle_range_multiplier
-			self.axis = axis
-			return self
+	var index: int # const
+	var cycle_phase: float # [0, 1) - changes all the time
+	var rotation_zero: Quaternion # const
+	var axes: Array[AxisRotation] # const
 
-var bone_map: Dictionary = {
-	"Tail": AnimJoint.new().init(0.5, -2, 0.75, Vector3(1, 0, 0)),
-	"Tail.1": AnimJoint.new().init(0.45, 0.5, 0.7, Vector3(1, 0, 0)),
-	"Tail.2": AnimJoint.new().init(0.4, 0.5, 0.65, Vector3(1, 0, 0)),
-	"Tail.3": AnimJoint.new().init(0.35, 0.5, 0.6, Vector3(1, 0, 0)),
-	"Tail.4": AnimJoint.new().init(0.3, 0.5, 0.55, Vector3(1, 0, 0)),
+	func _init(a: Array[AxisRotation]) -> void:
+		self.axes = a
 
+var bone_map: Dictionary[String, AnimJoint] = {
+	"Tail": AnimJoint.new([AxisRotation.new(0, 0, 0.05, Vector3(1, 0, 0), sin), AxisRotation.new(0.25, 0, 0.05, Vector3(0, 0, 1), sin)]),
+	"Tail.1": AnimJoint.new([AxisRotation.new(-0.1, 0, 0.05, Vector3(1, 0, 0), sin), AxisRotation.new(0.15, 0, 0.05, Vector3(0, 0, 1), sin)]),
+	"Tail.2": AnimJoint.new([AxisRotation.new(-0.2, 0, 0.05, Vector3(1, 0, 0), sin), AxisRotation.new(0.05, 0, 0.05, Vector3(0, 0, 1), sin)]),
+	"Tail.3": AnimJoint.new([AxisRotation.new(-0.3, 0, 0.05, Vector3(1, 0, 0), sin), AxisRotation.new(-0.05, 0, 0.05, Vector3(0, 0, 1), sin)]),
+	"Tail.4": AnimJoint.new([AxisRotation.new(-0.4, 0, 0.05, Vector3(1, 0, 0), sin), AxisRotation.new(-0.15, 0, 0.05, Vector3(0, 0, 1), sin)]),
 }
 
 var cycle_duration: float = 2 # seconds
 
 
-func _ready():
-	for bone in bone_map:
-		print(bone)
-		print(bone_map[bone])
-		bone_map[bone].cycle_moment = cycle_duration * bone_map[bone].cycle_start_moment
+func setup_joint(joint: AnimJoint) -> void:
+	joint.rotation_zero = self.get_bone_pose_rotation(joint.index)
+	joint.cycle_phase = 0
+
+	
+
+func calculate_joint_rotation(joint: AnimJoint) -> Quaternion:
+	var new_rotation: Quaternion = joint.rotation_zero
+	for axis_rot: AxisRotation in joint.axes:
+		var relative_phase: float = joint.cycle_phase + axis_rot.cycle_start_phase
+		var angle_offset: float = axis_rot.rotation_zero_angle_offset + axis_rot.angle_calculator.call(relative_phase * TAU)  * axis_rot.angle_range
+		var angle_offset_radians: float = angle_offset * TAU
+		new_rotation *= Quaternion(axis_rot.axis, angle_offset_radians)
+	return new_rotation
+
+func rotate_joint(joint: AnimJoint, delta: float) -> void:
+	joint.cycle_phase += delta / cycle_duration
+	while joint.cycle_phase >= 1:
+		joint.cycle_phase -= 1
+	var new_rotation: Quaternion = calculate_joint_rotation(joint)
+	self.set_bone_pose_rotation(joint.index, new_rotation)
+
+
+func _ready()-> void:
+	for bone: String in bone_map:
 		bone_map[bone].index = self.find_bone(bone)
-		var current_rotation: Quaternion = self.get_bone_pose_rotation(bone_map[bone].index)
-		self.set_bone_pose_rotation(bone_map[bone].index, current_rotation + Quaternion(bone_map[bone].axis, bone_map[bone].rotation_zero_angle_offset))
+		setup_joint(bone_map[bone])
+		
 
-
-func rotate_bone(joint: AnimJoint,delta: float):
-	var bone_idx: float = joint.index
-	var cycle_moment: float = joint.cycle_moment
-	var cycle_angle_range_multiplier: float = joint.cycle_angle_range_multiplier
-	var axis: Vector3 = joint.axis
-	# cycle_moment is in seconds, runs from 0 to duration
-	var current_rotation: Quaternion = self.get_bone_pose_rotation(bone_idx)
-	var rotation_angle: float = sin((cycle_moment  / cycle_duration) * TAU) * PI * delta / cycle_duration # in radians
-	print(rotation_angle) # you want some better method to calculate this SIMPLY
-	# the math will be the same, it's just a matter of easy understanding for this...
-	var new_rotation: Quaternion = current_rotation * Quaternion(axis, rotation_angle * cycle_angle_range_multiplier)
-	self.set_bone_pose_rotation(bone_idx, new_rotation)
-	return
-
-
-func _physics_process(delta: float):
-	for bone in bone_map:
-		var cycle_moment = (bone_map[bone].cycle_moment + delta)
-		if cycle_moment > cycle_duration:
-			cycle_moment = cycle_moment - cycle_duration
-		bone_map[bone].cycle_moment = cycle_moment
-		rotate_bone(bone_map[bone], delta)
+func _physics_process(delta: float) -> void:
+	for bone: String in bone_map:
+		rotate_joint(bone_map[bone], delta)
