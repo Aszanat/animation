@@ -33,6 +33,7 @@ var bone_map: Dictionary[String, AnimJoint] = {
 
 var cycle_duration: float = 2 # seconds
 var cycle_phase: float # [0; 1)
+var global_scope: Object = instance_from_id(0) # <Object#null> - needed to do Callable(global_scope, "sin") or something similar
 
 
 func setup_joint(joint: AnimJoint) -> void:
